@@ -1,0 +1,290 @@
+/* ==================== DELETED PANEL OVERLAY ==================== */
+.deleted-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ==================== DELETED PANEL CONTENT ==================== */
+.deleted-panel-content {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 1200px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+  padding: 20px;
+  overflow: hidden;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ==================== HEADER ==================== */
+.deleted-panel-title {
+  margin: 0 0 20px 0;
+  font-size: 24px;
+  color: #333;
+  text-align: center;
+}
+
+.deleted-panel-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #ff4444;
+  color: white;
+  border: none;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.deleted-panel-close:hover {
+  background: #cc0000;
+  transform: rotate(90deg);
+}
+
+/* ==================== BULK MODE TOGGLE ==================== */
+.deleted-panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.bulk-mode-toggle {
+  padding: 10px 20px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.bulk-mode-toggle.active {
+  background: #ff6b6b;
+}
+
+.bulk-mode-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ==================== BULK ACTION BAR ==================== */
+.bulk-action-bar-deleted {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 16px;
+  border-radius: 8px;
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.bulk-action-bar-deleted button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  background: white;
+  color: #667eea;
+}
+
+.bulk-action-bar-deleted button.restore-btn {
+  background: #4CAF50;
+  color: white;
+}
+
+.bulk-action-bar-deleted button.permanent-delete-btn {
+  background: #f44336;
+  color: white;
+}
+
+.bulk-action-bar-deleted button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.bulk-action-bar-deleted button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ==================== LOADING & EMPTY STATES ==================== */
+.loading-text,
+.empty-message {
+  padding: 60px 20px;
+  text-align: center;
+  color: #888;
+  font-size: 18px;
+}
+
+/* ==================== DELETED USERS LIST ==================== */
+.deleted-users-list {
+  overflow-y: auto;
+  max-height: calc(90vh - 250px);
+  padding: 10px;
+}
+
+.deleted-user-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  background: #f9f9f9;
+  transition: all 0.3s;
+}
+
+.deleted-user-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.deleted-user-item.selected {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.deleted-user-checkbox {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  accent-color: #667eea;
+  flex-shrink: 0;
+}
+
+.deleted-user-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #ddd;
+  flex-shrink: 0;
+}
+
+.deleted-user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.deleted-user-info strong {
+  display: block;
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.deleted-user-info p {
+  margin: 2px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+/* ==================== USER ACTION BUTTONS (NON-BULK MODE) ==================== */
+.deleted-user-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.deleted-user-actions button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.deleted-user-actions button:first-child {
+  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+  color: white;
+}
+
+.deleted-user-actions button:first-child:hover {
+  background: linear-gradient(135deg, #45a049 0%, #388e3c 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.deleted-user-actions button:last-child {
+  background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+  color: white;
+}
+
+.deleted-user-actions button:last-child:hover {
+  background: linear-gradient(135deg, #cc0000 0%, #990000 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 68, 68, 0.4);
+}
+
+/* ==================== FOOTER ==================== */
+.deleted-panel-footer {
+  padding: 15px;
+  border-top: 2px solid #f0f0f0;
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+  margin-top: auto;
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+  .deleted-panel-content {
+    width: 95%;
+    max-height: 85vh;
+  }
+
+  .deleted-user-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .deleted-user-actions {
+    width: 100%;
+  }
+
+  .deleted-user-actions button {
+    flex: 1;
+  }
+}

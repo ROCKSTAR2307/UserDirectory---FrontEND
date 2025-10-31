@@ -1,0 +1,124 @@
+/* Notification Container - Bottom Right */
+.notification-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 420px;
+  pointer-events: none;
+}
+
+/* Individual Notification */
+.notification-item {
+  pointer-events: all;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 10px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  min-width: 320px;
+  animation: slideInRight 0.3s ease-out;
+  transition: all 0.2s ease;
+}
+
+.notification-item:hover {
+  transform: translateX(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Success */
+.notification-success {
+  border-left: 4px solid #10b981;
+  background: linear-gradient(135deg, #1a1a1a 0%, #1a2e25 100%);
+}
+
+/* Error */
+.notification-error {
+  border-left: 4px solid #ef4444;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2e1a1a 100%);
+}
+
+/* Warning */
+.notification-warning {
+  border-left: 4px solid #f59e0b;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2e271a 100%);
+}
+
+/* Info */
+.notification-info {
+  border-left: 4px solid #3b82f6;
+  background: linear-gradient(135deg, #1a1a1a 0%, #1a1f2e 100%);
+}
+
+/* Icon */
+.notification-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* Message */
+.notification-message {
+  flex: 1;
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+/* Close Button */
+.notification-close {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 28px;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  line-height: 1;
+  padding: 0;
+}
+
+.notification-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* Animations */
+@keyframes slideInRight {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .notification-container {
+    bottom: 16px;
+    right: 16px;
+    left: 16px;
+    max-width: none;
+  }
+
+  .notification-item {
+    min-width: 0;
+    width: 100%;
+  }
+}

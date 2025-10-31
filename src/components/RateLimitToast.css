@@ -1,0 +1,120 @@
+.rate-limit-toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);  /* 🧡 Orange gradient */
+  color: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(255, 107, 53, 0.4);  /* 🧡 Orange shadow */
+  z-index: 10000;
+  min-width: 320px;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.rate-limit-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  position: relative;
+}
+
+.rate-limit-icon {
+  font-size: 32px;
+  animation: pulse 2s infinite;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.rate-limit-text h4 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.rate-limit-text p {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.95;
+}
+
+.rate-limit-timer {
+  margin-left: auto;
+}
+
+.countdown-circle {
+  position: relative;
+  width: 60px;
+  height: 60px;
+}
+
+.countdown-svg {
+  transform: rotate(-90deg);
+  width: 100%;
+  height: 100%;
+}
+
+.countdown-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.25);  /* 🧡 Lighter for contrast */
+  stroke-width: 3;
+}
+
+.countdown-progress {
+  fill: none;
+  stroke: #fff;  /* 🧡 White progress bar */
+  stroke-width: 3.5;  /* Slightly thicker */
+  stroke-linecap: round;
+  transition: stroke-dasharray 1s linear;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.6));  /* 🧡 Glowing effect */
+}
+
+.countdown-number {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  font-weight: bold;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.rate-limit-close {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);  /* 🧡 Border for depth */
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.rate-limit-close:hover {
+  background: rgba(0, 0, 0, 0.5);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
