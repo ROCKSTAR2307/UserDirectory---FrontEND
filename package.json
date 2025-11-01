@@ -14,9 +14,11 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.4",
     "@mui/material": "^7.3.4",
+    "@reduxjs/toolkit": "^2.9.2",
     "@toolpad/core": "^0.16.0",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "react-redux": "^9.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
@@ -25,13 +27,13 @@
     "@types/react-dom": "^19.1.9",
     "@typescript-eslint/eslint-plugin": "^8.13.0",
     "@typescript-eslint/parser": "^8.13.0",
-    "typescript": "^5.7.2",
-    "typescript-eslint": "^8.13.0",
     "@vitejs/plugin-react": "^5.0.4",
     "eslint": "^9.36.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.22",
     "globals": "^16.4.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.13.0",
     "vite": "npm:rolldown-vite@7.1.14"
   },
   "overrides": {

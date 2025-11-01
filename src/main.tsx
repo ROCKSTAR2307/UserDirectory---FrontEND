@@ -1,7 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { Provider } from 'react-redux';
 import { NotificationProvider } from './components/NotificationContext';
+import { store } from './store/store';
 import './index.css';
 
 const container = document.getElementById('root');
@@ -12,9 +14,11 @@ if (!container) {
 
 createRoot(container).render(
   <StrictMode>
-    <NotificationProvider>
-      <App />
-    </NotificationProvider>
+    <Provider store={store}>
+      <NotificationProvider>
+        <App />
+      </NotificationProvider>
+    </Provider>
   </StrictMode>
 );
 

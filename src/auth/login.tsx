@@ -1,16 +1,17 @@
-﻿import { useCallback } from 'react';
+import { useCallback } from 'react';
 import { AppProvider } from '@toolpad/core/AppProvider';
-import { SignInPage } from '@toolpad/core/SignInPage';
+import {
+  SignInPage,
+  type AuthProvider,
+  type AuthResponse,
+  type SignInPageProps
+} from '@toolpad/core/SignInPage';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { useNotification } from '../components/NotificationContext';
 import { API_BASE } from '../components/config';
+import type { JSX } from 'react';
 
-const providers = [{ id: 'credentials', name: 'Email and Password' }];
-
-interface SignInProvider {
-  id: string;
-  name?: string;
-}
+const providers: AuthProvider[] = [{ id: 'credentials', name: 'Email and Password' }];
 
 function Login(): JSX.Element {
   const { showNotification } = useNotification();
@@ -22,10 +23,11 @@ function Login(): JSX.Element {
     }
   });
 
-  const signIn = useCallback(
-    async (_provider: SignInProvider, formData: FormData) => {
-      const emailEntry = formData.get('email');
-      const passwordEntry = formData.get('password');
+  const signIn = useCallback<NonNullable<SignInPageProps['signIn']>>(
+    async (_provider, formData): Promise<AuthResponse> => {
+      const safeFormData = formData instanceof FormData ? formData : new FormData();
+      const emailEntry = safeFormData.get('email');
+      const passwordEntry = safeFormData.get('password');
       const email = typeof emailEntry === 'string' ? emailEntry.trim() : '';
       const password = typeof passwordEntry === 'string' ? passwordEntry.trim() : '';
 
@@ -59,10 +61,13 @@ function Login(): JSX.Element {
         localStorage.setItem('email', email);
 
         window.location.reload();
+
+        return { success: 'Signed in successfully.' };
       } catch (error) {
         console.error('Login failed:', error);
         const message = error instanceof Error ? error.message : 'Unknown error';
         showNotification(`Invalid credentials or server error\n${message}`, 'error');
+        return { error: message };
       }
     },
     [showNotification]
@@ -85,4 +90,3 @@ function Login(): JSX.Element {
 }
 
 export default Login;
-

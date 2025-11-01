@@ -5,6 +5,7 @@ import ConfirmDialog from './ConfirmDialog';
 import { API_BASE } from './config';
 import type { JSX } from 'react';
 import type { AuthHeadersFn, ConfirmDialogRequest, ConfirmDialogState, User } from '../types';
+import { formatApiErrorMessage, parseApiError } from '../utils/api';
 
 interface DeletedPanelProps {
   isOpen: boolean;
@@ -58,13 +59,20 @@ function DeletedPanel({ isOpen, onClose, authHeaders, onRestoreComplete }: Delet
       const res = await fetch(`${API_BASE}/api/users/deleted?limit=100`, {
         headers: authHeaders()
       });
-      if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
+      if (!res.ok) {
+        const apiError = await parseApiError(res);
+        throw new Error(formatApiErrorMessage('Failed to fetch deleted users', apiError));
+      }
 
       const data = (await res.json()) as { users?: User[] };
       setDeletedUsers(data.users ?? []);
     } catch (error) {
       console.error('fetchDeletedUsers error:', error);
-      showNotification('Could not fetch deleted users', 'error');
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Failed to fetch deleted users: Unknown error';
+      showNotification(message, 'error');
     } finally {
       setLoading(false);
     }
@@ -124,7 +132,10 @@ function DeletedPanel({ isOpen, onClose, authHeaders, onRestoreComplete }: Delet
         body: JSON.stringify({ ids: selectedDeleted })
       });
 
-      if (!res.ok) throw new Error('Bulk restore failed');
+      if (!res.ok) {
+        const apiError = await parseApiError(res);
+        throw new Error(formatApiErrorMessage('Failed to restore users', apiError));
+      }
 
       showNotification(`${selectedDeleted.length} user(s) restored!`, 'success');
       setSelectedDeleted([]);
@@ -133,7 +144,11 @@ function DeletedPanel({ isOpen, onClose, authHeaders, onRestoreComplete }: Delet
       onRestoreComplete?.();
     } catch (error) {
       console.error('Bulk restore error:', error);
-      showNotification('Failed to restore users', 'error');
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Failed to restore users: Unknown error';
+      showNotification(message, 'error');
     }
   }, [authHeaders, fetchDeletedUsers, onRestoreComplete, requestConfirmation, selectedDeleted, showNotification]);
 
@@ -161,7 +176,10 @@ function DeletedPanel({ isOpen, onClose, authHeaders, onRestoreComplete }: Delet
         body: JSON.stringify({ ids: selectedDeleted })
       });
 
-      if (!res.ok) throw new Error('Bulk permanent delete failed');
+      if (!res.ok) {
+        const apiError = await parseApiError(res);
+        throw new Error(formatApiErrorMessage('Failed to delete users permanently', apiError));
+      }
 
       showNotification(`${selectedDeleted.length} user(s) deleted permanently.`, 'success');
       setSelectedDeleted([]);
@@ -170,7 +188,11 @@ function DeletedPanel({ isOpen, onClose, authHeaders, onRestoreComplete }: Delet
       onRestoreComplete?.();
     } catch (error) {
       console.error('Bulk permanent delete error:', error);
-      showNotification('Failed to delete users permanently', 'error');
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Failed to delete users permanently: Unknown error';
+      showNotification(message, 'error');
     }
   }, [authHeaders, fetchDeletedUsers, onRestoreComplete, requestConfirmation, selectedDeleted, showNotification]);
 
@@ -180,14 +202,21 @@ function DeletedPanel({ isOpen, onClose, authHeaders, onRestoreComplete }: Delet
         method: 'POST',
         headers: authHeaders()
       });
-      if (!res.ok) throw new Error(`Restore failed: ${res.status}`);
+      if (!res.ok) {
+        const apiError = await parseApiError(res);
+        throw new Error(formatApiErrorMessage('Failed to restore user', apiError));
+      }
 
       showNotification('User restored successfully', 'success');
       await fetchDeletedUsers();
       onRestoreComplete?.();
     } catch (error) {
       console.error('Restore error:', error);
-      showNotification('Failed to restore user', 'error');
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Failed to restore user: Unknown error';
+      showNotification(message, 'error');
     }
   }, [authHeaders, fetchDeletedUsers, onRestoreComplete, showNotification]);
 
@@ -197,14 +226,21 @@ function DeletedPanel({ isOpen, onClose, authHeaders, onRestoreComplete }: Delet
         method: 'DELETE',
         headers: authHeaders()
       });
-      if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
+      if (!res.ok) {
+        const apiError = await parseApiError(res);
+        throw new Error(formatApiErrorMessage('Failed to delete user permanently', apiError));
+      }
 
       showNotification('User permanently deleted', 'success');
       await fetchDeletedUsers();
       onRestoreComplete?.();
     } catch (error) {
       console.error('Permanent delete error:', error);
-      showNotification('Failed to delete user permanently', 'error');
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Failed to delete user permanently: Unknown error';
+      showNotification(message, 'error');
     }
   }, [authHeaders, fetchDeletedUsers, onRestoreComplete, showNotification]);
 

@@ -19,12 +19,35 @@ import type {
   ConfirmDialogRequest,
   ConfirmDialogState,
   NewUserForm,
-  RateLimitInfo,
   RecentUser,
   User,
   ImportPreview
 } from './types';
 import './App.css';
+import { useAppDispatch, useAppSelector } from './store/hooks';
+import {
+  addUserToFront,
+  clearSelectedUsers,
+  clearUsers,
+  removeUser,
+  resetFilters as resetFiltersAction,
+  setBulkMode,
+  setCurrentPage,
+  setDepartmentFilter,
+  setDepartments,
+  setGenderFilter,
+  setIsLoading,
+  setRateLimitInfo,
+  setSearchQuery,
+  setSelectedUsers,
+  setSortBy,
+  setSortOrder,
+  setTotalUsers,
+  setUsers,
+  toggleUserSelection as toggleUserSelectionAction,
+  updateUser
+} from './store/usersSlice';
+import { formatApiErrorMessage, parseApiError } from './utils/api';
 
 const USERS_PER_PAGE = 30;
 
@@ -92,6 +115,22 @@ function normalizeUser(raw: Record<string, unknown>): User {
 function App(): JSX.Element {
   const { showNotification } = useNotification();
   const deptSelectRef = useRef<HTMLSelectElement | null>(null);
+  const dispatch = useAppDispatch();
+  const {
+    items: users,
+    departments,
+    searchQuery,
+    genderFilter,
+    departmentFilter,
+    selectedUsers,
+    bulkMode,
+    currentPage,
+    totalUsers,
+    sortBy,
+    sortOrder,
+    isLoading,
+    rateLimitInfo
+  } = useAppSelector((state) => state.users);
 
   const [isLoggedIn] = useState<boolean>(() => sessionStorage.getItem('isLoggedIn') === 'true');
 
@@ -118,11 +157,6 @@ function App(): JSX.Element {
     []
   );
 
-  const [users, setUsers] = useState<User[]>([]);
-  const [departments, setDepartments] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female'>('all');
-  const [departmentFilter, setDepartmentFilter] = useState('all');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [recentUsers, setRecentUsers] = useState<RecentUser[]>([]);
@@ -130,14 +164,6 @@ function App(): JSX.Element {
   const [newUser, setNewUser] = useState<NewUserForm>(defaultNewUser);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [showDeletedPanel, setShowDeletedPanel] = useState(false);
-  const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitInfo | null>(null);
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [bulkMode, setBulkMode] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalUsers, setTotalUsers] = useState(0);
-  const [sortBy, setSortBy] = useState<'firstName' | 'lastName' | 'department' | 'city'>('firstName');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [isLoading, setIsLoading] = useState(false);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
   const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
   const [currentBackend] = useState<string>(() => localStorage.getItem('selectedBackend') || 'node');
@@ -163,7 +189,7 @@ function App(): JSX.Element {
         if (response.status === 429) {
           const data = (await response.json()) as { detail?: { retry_after?: number }; retry_after?: number };
           const retryAfter = data.detail?.retry_after ?? data.retry_after ?? 60;
-          setRateLimitInfo({ retryAfter });
+          dispatch(setRateLimitInfo({ retryAfter }));
           throw new Error('Rate limit exceeded');
         }
 
@@ -173,7 +199,7 @@ function App(): JSX.Element {
         throw error;
       }
     },
-    []
+    [dispatch]
   );
 
 
@@ -181,12 +207,11 @@ function App(): JSX.Element {
 
   const fetchUsers = useCallback(async () => {
     if (!isLoggedIn) {
-      setUsers([]);
-      setTotalUsers(0);
+      dispatch(clearUsers());
       return;
     }
     try {
-      setIsLoading(true);
+      dispatch(setIsLoading(true));
 
       const skip = (currentPage - 1) * USERS_PER_PAGE;
       const params = new URLSearchParams({
@@ -200,27 +225,33 @@ function App(): JSX.Element {
       if (genderFilter !== 'all') params.append('gender', genderFilter);
       if (departmentFilter !== 'all') params.append('department', departmentFilter);
 
-      const response = await handleFetch(`${API_BASE}/api/users?${params.toString()}`, {
+      const response = await handleFetch(`${API_BASE}/api/users/?${params.toString()}`, {
         headers: {
           ...authHeaders()
         }
       });
 
       if (!response.ok) {
-        throw new Error(`Fetch failed: ${response.status}`);
+        const apiError = await parseApiError(response);
+        throw new Error(formatApiErrorMessage('Failed to fetch users', apiError));
       }
 
       const data = (await response.json()) as UsersResponse;
       const normalizedUsers = (data.users ?? []).map(normalizeUser);
 
-      setUsers(normalizedUsers);
-      setTotalUsers(data.total ?? 0);
+      dispatch(setUsers(normalizedUsers));
+      dispatch(setTotalUsers(data.total ?? 0));
     } catch (error) {
-      if ((error as Error).message !== 'Rate limit exceeded') {
-        showNotification('Failed to fetch users', 'error');
+      if (error instanceof Error && error.message === 'Rate limit exceeded') {
+        return;
       }
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Failed to fetch users: Unknown error';
+      showNotification(message, 'error');
     } finally {
-      setIsLoading(false);
+      dispatch(setIsLoading(false));
     }
   }, [
     currentPage,
@@ -231,7 +262,8 @@ function App(): JSX.Element {
     searchQuery,
     showNotification,
     sortBy,
-    sortOrder
+    sortOrder,
+    dispatch
   ]);
 
   fetchUsersRef.current = fetchUsers;
@@ -241,7 +273,7 @@ function App(): JSX.Element {
     }
 
     const refreshTimer = window.setTimeout(() => {
-      setRateLimitInfo(null);
+      dispatch(setRateLimitInfo(null));
 
       if (showCreateForm || isModalOpen || bulkMode) {
         return;
@@ -251,11 +283,11 @@ function App(): JSX.Element {
     }, rateLimitInfo.retryAfter * 1000);
 
     return () => window.clearTimeout(refreshTimer);
-  }, [bulkMode, isLoggedIn, isModalOpen, rateLimitInfo, showCreateForm]);
+  }, [bulkMode, dispatch, isLoggedIn, isModalOpen, rateLimitInfo, showCreateForm]);
 
   const fetchDepartments = useCallback(async () => {
     if (!isLoggedIn) {
-      setDepartments([]);
+      dispatch(setDepartments([]));
       return;
     }
     try {
@@ -274,29 +306,34 @@ function App(): JSX.Element {
       }
 
       if (!res.ok) {
-        throw new Error(`Failed to load departments: ${res.status}`);
+        const apiError = await parseApiError(res);
+        throw new Error(formatApiErrorMessage('Failed to load departments', apiError));
       }
 
       const list = (await res.json()) as unknown;
       if (Array.isArray(list)) {
-        setDepartments(list.filter((item): item is string => typeof item === 'string'));
+        dispatch(setDepartments(list.filter((item): item is string => typeof item === 'string')));
       }
     } catch (error) {
       console.error('fetchDepartments error:', error);
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Failed to load departments: Unknown error';
+      showNotification(message, 'error');
     }
-  }, [isLoggedIn, showNotification]);
+  }, [dispatch, isLoggedIn, showNotification]);
   useEffect(() => {
     if (!isLoggedIn) {
-      setUsers([]);
-      setTotalUsers(0);
+      dispatch(clearUsers());
       return;
     }
     fetchUsersRef.current?.();
-  }, [currentPage, departmentFilter, genderFilter, isLoggedIn, searchQuery, sortBy, sortOrder]);
+  }, [currentPage, departmentFilter, dispatch, genderFilter, isLoggedIn, searchQuery, sortBy, sortOrder]);
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, genderFilter, departmentFilter, sortBy, sortOrder]);
+    dispatch(setCurrentPage(1));
+  }, [departmentFilter, dispatch, genderFilter, searchQuery, sortBy, sortOrder]);
 
   useEffect(() => {
     window.scrollTo({
@@ -401,11 +438,11 @@ function App(): JSX.Element {
         });
 
         if (!res.ok) {
-          const msg = await res.text();
-          throw new Error(`Delete failed: ${res.status} ${msg}`);
+          const apiError = await parseApiError(res);
+          throw new Error(formatApiErrorMessage('Failed to delete user', apiError));
         }
 
-        setUsers((prev) => prev.filter((user) => user._id !== id));
+        dispatch(removeUser(id));
 
         setRecentUsers((prev) => {
           const key = getRecentViewedKey();
@@ -419,10 +456,14 @@ function App(): JSX.Element {
         }
       } catch (error) {
         console.error('Error deleting user:', error);
-        showNotification(`Failed to delete user: ${(error as Error).message}`, 'error');
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : 'Failed to delete user: Unknown error';
+        showNotification(message, 'error');
       }
     },
-    [closeModal, getRecentViewedKey, requestConfirmation, selectedUser, showNotification]
+    [authHeaders, closeModal, dispatch, getRecentViewedKey, requestConfirmation, selectedUser, showNotification]
   );
 
   const handleUserUpdated = useCallback(
@@ -431,7 +472,7 @@ function App(): JSX.Element {
       if (!id) return;
       const normalized = normalizeUser(updatedUser);
 
-      setUsers((prev) => prev.map((user) => (user._id === normalized._id ? normalized : user)));
+      dispatch(updateUser(normalized));
       setRecentUsers((prev) => {
         const key = getRecentViewedKey();
         const next = prev.map((user) => (user.id === normalized._id ? { ...user, ...normalized } : user));
@@ -442,7 +483,7 @@ function App(): JSX.Element {
       closeModal();
       await fetchDepartments();
     },
-    [fetchDepartments, getRecentViewedKey, closeModal]
+    [dispatch, fetchDepartments, getRecentViewedKey, closeModal]
   );
 
   const clearRecentViewed = useCallback(() => {
@@ -510,14 +551,14 @@ function App(): JSX.Element {
         });
 
         if (!res.ok) {
-          const text = await res.text();
-          throw new Error(`Create failed: ${res.status} ${text}`);
+          const apiError = await parseApiError(res);
+          throw new Error(formatApiErrorMessage('Failed to create user', apiError));
         }
 
         const created = (await res.json()) as Record<string, unknown>;
         const createdNormalized = normalizeUser(created);
 
-        setUsers((prev) => [createdNormalized, ...prev]);
+        dispatch(addUserToFront(createdNormalized));
         setSubmitSuccess(true);
         setNewUser(defaultNewUser);
 
@@ -529,17 +570,54 @@ function App(): JSX.Element {
         }
       } catch (error) {
         console.error('Error creating user:', error);
-        showNotification(`Failed to create user: ${(error as Error).message}`, 'error');
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : 'Failed to create user: Unknown error';
+        showNotification(message, 'error');
       }
     },
-    [departments, fetchDepartments, newUser, showNotification]
+    [departments, dispatch, fetchDepartments, newUser, showNotification]
   );
 
   const resetFilters = useCallback(() => {
-    setSearchQuery('');
-    setGenderFilter('all');
-    setDepartmentFilter('all');
-  }, []);
+    dispatch(resetFiltersAction());
+  }, [dispatch]);
+
+  const handleSearchQueryChange = useCallback(
+    (value: string) => {
+      dispatch(setSearchQuery(value));
+    },
+    [dispatch]
+  );
+
+  const handleGenderFilterChange = useCallback(
+    (value: 'all' | 'male' | 'female') => {
+      dispatch(setGenderFilter(value));
+    },
+    [dispatch]
+  );
+
+  const handleDepartmentFilterChange = useCallback(
+    (value: string) => {
+      dispatch(setDepartmentFilter(value));
+    },
+    [dispatch]
+  );
+
+  const handleSortByChange = useCallback(
+    (value: 'firstName' | 'lastName' | 'department' | 'city') => {
+      dispatch(setSortBy(value));
+    },
+    [dispatch]
+  );
+
+  const handleSortOrderChange = useCallback(
+    (value: 'asc' | 'desc') => {
+      dispatch(setSortOrder(value));
+    },
+    [dispatch]
+  );
 
   useEffect(() => {
     let escPressCount = 0;
@@ -599,17 +677,22 @@ function App(): JSX.Element {
           setImportPreview(previewData);
           setPendingImportFile(file);
         } else {
-          const error = await response.json();
-          showNotification(`Failed to read file: ${error.detail ?? 'Unknown error'}`, 'error');
+          const apiError = await parseApiError(response);
+          const message = formatApiErrorMessage('Failed to read file', apiError);
+          showNotification(message, 'error');
         }
       } catch (error) {
         console.error('Import preview error:', error);
-        showNotification('Failed to read file. Please try again.', 'error');
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : 'Failed to read file. Please try again.';
+        showNotification(message, 'error');
       }
     };
 
     input.click();
-  }, [showNotification]);
+  }, [authHeaders, showNotification]);
 
   const handleConfirmImport = useCallback(async () => {
     if (!pendingImportFile) return;
@@ -638,19 +721,16 @@ function App(): JSX.Element {
         await fetchUsers();
         await fetchDepartments();
       } else {
-        const errorText = await response.text();
-        try {
-          const errorJson = JSON.parse(errorText) as { detail?: string };
-          showNotification(`Import failed: ${errorJson.detail ?? 'Unknown error'}`, 'error');
-        } catch {
-          showNotification(`Import failed: ${errorText}`, 'error');
-        }
+        const apiError = await parseApiError(response);
+        throw new Error(formatApiErrorMessage('Import failed', apiError));
       }
     } catch (error) {
       console.error('Import error:', error);
-      showNotification('Import failed. Please try again.', 'error');
+      const message =
+        error instanceof Error && error.message ? error.message : 'Import failed. Please try again.';
+      showNotification(message, 'error');
     }
-  }, [fetchDepartments, fetchUsers, pendingImportFile, showNotification]);
+  }, [authHeaders, fetchDepartments, fetchUsers, pendingImportFile, showNotification]);
 
   const handleRejectImport = useCallback(() => {
     setImportPreview(null);
@@ -689,13 +769,18 @@ function App(): JSX.Element {
         document.body.removeChild(anchor);
         showNotification('Users exported successfully!', 'success');
       } else {
-        showNotification('Export failed. Please try again.', 'error');
+        const apiError = await parseApiError(response);
+        throw new Error(formatApiErrorMessage('Export failed', apiError));
       }
     } catch (error) {
       console.error('Export error:', error);
-      showNotification('Export failed. Please try again.', 'error');
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Export failed: Please try again.';
+      showNotification(message, 'error');
     }
-  }, [currentPage, departmentFilter, genderFilter, searchQuery, showNotification, sortBy, sortOrder]);
+  }, [authHeaders, currentPage, departmentFilter, genderFilter, searchQuery, showNotification, sortBy, sortOrder]);
 
   const bulkDeleteUsers = useCallback(async () => {
     if (selectedUsers.length === 0) {
@@ -722,32 +807,38 @@ function App(): JSX.Element {
       });
 
       if (!res.ok) {
-        throw new Error('Bulk delete failed');
+        const apiError = await parseApiError(res);
+        throw new Error(formatApiErrorMessage('Failed to bulk delete users', apiError));
       }
 
       showNotification(`${selectedUsers.length} user(s) deleted successfully!`, 'success');
-      setSelectedUsers([]);
-      setBulkMode(false);
+      dispatch(clearSelectedUsers());
+      dispatch(setBulkMode(false));
       await fetchUsers();
     } catch (error) {
       console.error('Bulk delete error:', error);
-      showNotification('Failed to bulk delete users', 'error');
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Failed to bulk delete users: Unknown error';
+      showNotification(message, 'error');
     }
-  }, [fetchUsers, requestConfirmation, selectedUsers, showNotification]);
+  }, [authHeaders, dispatch, fetchUsers, requestConfirmation, selectedUsers, showNotification]);
 
-  const toggleUserSelection = useCallback((userId: string) => {
-    setSelectedUsers((prev) =>
-      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
-    );
-  }, []);
+  const toggleUserSelection = useCallback(
+    (userId: string) => {
+      dispatch(toggleUserSelectionAction(userId));
+    },
+    [dispatch]
+  );
 
   const selectAll = useCallback(() => {
-    setSelectedUsers(users.map((user) => user._id));
-  }, [users]);
+    dispatch(setSelectedUsers(users.map((user) => user._id)));
+  }, [dispatch, users]);
 
   const deselectAll = useCallback(() => {
-    setSelectedUsers([]);
-  }, []);
+    dispatch(clearSelectedUsers());
+  }, [dispatch]);
 
   const sortedUsers = useMemo(() => users, [users]);
 
@@ -771,17 +862,17 @@ function App(): JSX.Element {
 
         <Header
           searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
+          setSearchQuery={handleSearchQueryChange}
           genderFilter={genderFilter}
-          setGenderFilter={setGenderFilter}
+          setGenderFilter={handleGenderFilterChange}
           departmentFilter={departmentFilter}
-          setDepartmentFilter={setDepartmentFilter}
+          setDepartmentFilter={handleDepartmentFilterChange}
           departments={departments}
           deptSelectRef={deptSelectRef}
           sortBy={sortBy}
-          setSortBy={setSortBy}
+          setSortBy={handleSortByChange}
           sortOrder={sortOrder}
-          setSortOrder={setSortOrder}
+          setSortOrder={handleSortOrderChange}
         />
 
         <div className="action-buttons-container">
@@ -800,8 +891,8 @@ function App(): JSX.Element {
           <button
             className={`action-btn bulk-select-btn ${bulkMode ? 'active' : ''}`}
             onClick={() => {
-              setBulkMode((prev) => !prev);
-              setSelectedUsers([]);
+              dispatch(setBulkMode(!bulkMode));
+              dispatch(clearSelectedUsers());
             }}
             type="button"
           >
@@ -860,8 +951,8 @@ function App(): JSX.Element {
               <button
                 className="bulk-btn cancel"
                 onClick={() => {
-                  setBulkMode(false);
-                  setSelectedUsers([]);
+                  dispatch(setBulkMode(false));
+                  dispatch(clearSelectedUsers());
                 }}
                 type="button"
               >
@@ -901,7 +992,9 @@ function App(): JSX.Element {
           <div className="pagination-controls">
             <button
               className="pagination-btn"
-              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              onClick={() => {
+                dispatch(setCurrentPage(Math.max(1, currentPage - 1)));
+              }}
               disabled={currentPage === 1}
               type="button"
             >
@@ -914,7 +1007,9 @@ function App(): JSX.Element {
 
             <button
               className="pagination-btn"
-              onClick={() => setCurrentPage((prev) => prev + 1)}
+              onClick={() => {
+                dispatch(setCurrentPage(currentPage + 1));
+              }}
               disabled={currentPage >= Math.ceil(totalUsers / USERS_PER_PAGE)}
               type="button"
             >
@@ -926,7 +1021,7 @@ function App(): JSX.Element {
         {rateLimitInfo && (
           <RateLimitToast
             retryAfter={rateLimitInfo.retryAfter}
-            onClose={() => setRateLimitInfo(null)}
+            onClose={() => dispatch(setRateLimitInfo(null))}
           />
         )}
 

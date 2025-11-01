@@ -5,6 +5,7 @@ import { useNotification } from './NotificationContext';
 import { API_BASE } from './config';
 import type { User } from '../types';
 import type { JSX } from 'react';
+import { formatApiErrorMessage, parseApiError } from '../utils/api';
 
 interface UserModalProps {
   user: User | null;
@@ -25,6 +26,10 @@ const editableFieldKeys: EditableUserKey[] = [
   'city',
   'department'
 ];
+
+const nonNumericFields = new Set<EditableUserKey>(['firstName', 'lastName', 'city', 'department']);
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const phoneRegex = /^\+?[1-9]\d{1,14}$/;
 
 function UserModal({ user, isOpen, onClose, onDelete, onUpdate }: UserModalProps): JSX.Element | null {
   const { showNotification } = useNotification();
@@ -49,14 +54,52 @@ function UserModal({ user, isOpen, onClose, onDelete, onUpdate }: UserModalProps
       return;
     }
 
-    const formData = new FormData();
-    editableFieldKeys.forEach((field) => {
-      const value = editUser[field];
-      if (value !== undefined && value !== null) {
-        const text = String(value).trim();
-        if (text) {
-          formData.append(field, text);
+    const sanitizedValues: Partial<Record<EditableUserKey, string>> = {};
+
+    for (const field of editableFieldKeys) {
+      const rawValue = editUser[field];
+      if (rawValue === undefined || rawValue === null) {
+        showNotification(`${field} cannot be empty.`, 'warning');
+        return;
+      }
+
+      const value = String(rawValue).trim();
+      if (!value) {
+        showNotification(`${field} cannot be blank or whitespace.`, 'warning');
+        return;
+      }
+
+      if (field === 'email') {
+        if (!emailRegex.test(value)) {
+          showNotification('Please enter a valid email address.', 'warning');
+          return;
         }
+      } else if (field === 'phone') {
+        if (!phoneRegex.test(value)) {
+          showNotification('Please enter a valid phone number.', 'warning');
+          return;
+        }
+      } else {
+        if (/\d/.test(value)) {
+          showNotification(`${field} cannot contain numbers.`, 'warning');
+          return;
+        }
+      }
+
+      if (field === 'gender' && value !== 'male' && value !== 'female') {
+        showNotification('Please select a valid gender.', 'warning');
+        return;
+      }
+
+      sanitizedValues[field] = value;
+    }
+
+    const formData = new FormData();
+    setEditUser((prev) => ({ ...prev, ...sanitizedValues }));
+    editableFieldKeys.forEach((field) => {
+      const value = sanitizedValues[field];
+      if (value) {
+        formData.append(field, value);
       }
     });
 
@@ -75,28 +118,33 @@ function UserModal({ user, isOpen, onClose, onDelete, onUpdate }: UserModalProps
         body: formData
       });
 
-      const text = await res.text();
-      let parsed: Record<string, unknown> | null = null;
-      try {
-        parsed = JSON.parse(text) as Record<string, unknown>;
-      } catch {
-        parsed = null;
-      }
-
       if (!res.ok) {
-        const msg = (parsed && (parsed.detail as string | undefined)) || text || `HTTP ${res.status}`;
-        showNotification(`Update failed: ${msg}`, 'error');
-        throw new Error(`Update failed: ${msg}`);
+        const apiError = await parseApiError(res);
+        throw new Error(formatApiErrorMessage('Failed to update user', apiError));
       }
 
-      const data = parsed ?? {};
+      let data: Record<string, unknown> = {};
+      try {
+        data = (await res.json()) as Record<string, unknown>;
+      } catch {
+        data = {};
+      }
       showNotification('User updated successfully!', 'success');
       onUpdate?.(data);
       setIsEditing(false);
     } catch (error) {
       console.error('Update failed:', error);
       if (error instanceof TypeError) {
-        showNotification('Network error. Please ensure the backend is running and CORS is configured.', 'error');
+        showNotification(
+          'Network error. Please ensure the backend is running and CORS is configured.',
+          'error'
+        );
+      } else {
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : 'Failed to update user: Unknown error';
+        showNotification(message, 'error');
       }
     }
   };
@@ -104,7 +152,8 @@ function UserModal({ user, isOpen, onClose, onDelete, onUpdate }: UserModalProps
   const handleFieldChange =
     (field: EditableUserKey) => (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       const { value } = event.target;
-      setEditUser((prev) => ({ ...prev, [field]: value }));
+      const sanitized = nonNumericFields.has(field) ? value.replace(/\d+/g, '') : value;
+      setEditUser((prev) => ({ ...prev, [field]: sanitized }));
     };
 
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
