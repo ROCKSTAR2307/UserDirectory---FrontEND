@@ -2,6 +2,7 @@
 import { createContext, useCallback, useContext, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { NotificationItem, NotificationKind } from '../types';
+import type { JSX } from 'react';
 
 interface NotificationContextValue {
   notifications: NotificationItem[];

@@ -3,6 +3,7 @@ import './DeletedPanel.css';
 import { useNotification } from './NotificationContext';
 import ConfirmDialog from './ConfirmDialog';
 import { API_BASE } from './config';
+import type { JSX } from 'react';
 import type { AuthHeadersFn, ConfirmDialogRequest, ConfirmDialogState, User } from '../types';
 
 interface DeletedPanelProps {

@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from 'react';
 import './RateLimitToast.css';
+import type { JSX } from 'react';
 
 interface RateLimitToastProps {
   retryAfter: number;

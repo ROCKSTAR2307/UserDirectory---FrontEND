@@ -180,6 +180,11 @@ function App(): JSX.Element {
 
 
   const fetchUsers = useCallback(async () => {
+    if (!isLoggedIn) {
+      setUsers([]);
+      setTotalUsers(0);
+      return;
+    }
     try {
       setIsLoading(true);
 
@@ -217,11 +222,21 @@ function App(): JSX.Element {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, departmentFilter, genderFilter, handleFetch, searchQuery, showNotification, sortBy, sortOrder]);
+  }, [
+    currentPage,
+    departmentFilter,
+    genderFilter,
+    handleFetch,
+    isLoggedIn,
+    searchQuery,
+    showNotification,
+    sortBy,
+    sortOrder
+  ]);
 
   fetchUsersRef.current = fetchUsers;
   useEffect(() => {
-    if (!rateLimitInfo?.retryAfter) {
+    if (!rateLimitInfo?.retryAfter || !isLoggedIn) {
       return;
     }
 
@@ -236,9 +251,13 @@ function App(): JSX.Element {
     }, rateLimitInfo.retryAfter * 1000);
 
     return () => window.clearTimeout(refreshTimer);
-  }, [rateLimitInfo, showCreateForm, isModalOpen, bulkMode]);
+  }, [bulkMode, isLoggedIn, isModalOpen, rateLimitInfo, showCreateForm]);
 
   const fetchDepartments = useCallback(async () => {
+    if (!isLoggedIn) {
+      setDepartments([]);
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/api/users/departments?cb=${Date.now()}`, {
         headers: {
@@ -265,10 +284,15 @@ function App(): JSX.Element {
     } catch (error) {
       console.error('fetchDepartments error:', error);
     }
-  }, [showNotification]);
+  }, [isLoggedIn, showNotification]);
   useEffect(() => {
+    if (!isLoggedIn) {
+      setUsers([]);
+      setTotalUsers(0);
+      return;
+    }
     fetchUsersRef.current?.();
-  }, [currentPage, departmentFilter, genderFilter, searchQuery, sortBy, sortOrder]);
+  }, [currentPage, departmentFilter, genderFilter, isLoggedIn, searchQuery, sortBy, sortOrder]);
 
   useEffect(() => {
     setCurrentPage(1);

@@ -1,4 +1,5 @@
 ﻿import type { ChangeEvent, MutableRefObject } from 'react';
+import type { JSX } from 'react';
 
 interface HeaderProps {
   searchQuery: string;

@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import React, { useState } from 'react';
 import type { ImportPreview } from '../types';
 import './ImportReviewModal.css';
 import type { JSX } from 'react';

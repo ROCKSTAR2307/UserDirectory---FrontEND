@@ -4,6 +4,7 @@ import './UserModal.css';
 import { useNotification } from './NotificationContext';
 import { API_BASE } from './config';
 import type { User } from '../types';
+import type { JSX } from 'react';
 
 interface UserModalProps {
   user: User | null;
@@ -13,7 +14,17 @@ interface UserModalProps {
   onUpdate?: (updatedUser: Record<string, unknown>) => void;
 }
 
-type EditableUser = Partial<User> & { image?: string | File | null };
+type EditableUser = Partial<Omit<User, 'image'>> & { image?: string | File | null };
+type EditableUserKey = Extract<keyof EditableUser, string>;
+const editableFieldKeys: EditableUserKey[] = [
+  'firstName',
+  'lastName',
+  'email',
+  'phone',
+  'gender',
+  'city',
+  'department'
+];
 
 function UserModal({ user, isOpen, onClose, onDelete, onUpdate }: UserModalProps): JSX.Element | null {
   const { showNotification } = useNotification();
@@ -39,17 +50,7 @@ function UserModal({ user, isOpen, onClose, onDelete, onUpdate }: UserModalProps
     }
 
     const formData = new FormData();
-    const fields: Array<keyof EditableUser> = [
-      'firstName',
-      'lastName',
-      'email',
-      'phone',
-      'gender',
-      'city',
-      'department'
-    ];
-
-    fields.forEach((field) => {
+    editableFieldKeys.forEach((field) => {
       const value = editUser[field];
       if (value !== undefined && value !== null) {
         const text = String(value).trim();
@@ -59,7 +60,7 @@ function UserModal({ user, isOpen, onClose, onDelete, onUpdate }: UserModalProps
       }
     });
 
-    if (editUser.image && editUser.image instanceof File) {
+    if (editUser.image && typeof editUser.image !== 'string') {
       formData.append('image', editUser.image);
     }
 
@@ -100,10 +101,11 @@ function UserModal({ user, isOpen, onClose, onDelete, onUpdate }: UserModalProps
     }
   };
 
-  const handleFieldChange = (field: keyof EditableUser) => (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { value } = event.target;
-    setEditUser((prev) => ({ ...prev, [field]: value }));
-  };
+  const handleFieldChange =
+    (field: EditableUserKey) => (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      const { value } = event.target;
+      setEditUser((prev) => ({ ...prev, [field]: value }));
+    };
 
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
@@ -170,7 +172,9 @@ function UserModal({ user, isOpen, onClose, onDelete, onUpdate }: UserModalProps
           <>
             <h2 className="form-title">Edit User</h2>
             <form className="edit-form" onSubmit={handleSubmit}>
-              {['firstName', 'lastName', 'email', 'phone', 'city', 'department'].map((field) => (
+              {editableFieldKeys
+                .filter((field) => field !== 'gender')
+                .map((field) => (
                 <div key={field} className="form-group">
                   <label className="form-label">
                     {field.charAt(0).toUpperCase() + field.slice(1)}:
@@ -178,8 +182,8 @@ function UserModal({ user, isOpen, onClose, onDelete, onUpdate }: UserModalProps
                   <input
                     className="form-input"
                     type={field === 'email' ? 'email' : field === 'phone' ? 'tel' : 'text'}
-                    value={(editUser[field as keyof EditableUser] as string) || ''}
-                    onChange={handleFieldChange(field as keyof EditableUser)}
+                    value={(editUser[field] as string) || ''}
+                    onChange={handleFieldChange(field)}
                   />
                 </div>
               ))}
@@ -220,4 +224,3 @@ function UserModal({ user, isOpen, onClose, onDelete, onUpdate }: UserModalProps
 }
 
 export default UserModal;
-

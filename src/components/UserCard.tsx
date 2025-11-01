@@ -1,5 +1,6 @@
 ﻿import type { CSSProperties, ChangeEvent, MouseEvent } from 'react';
 import type { User } from '../types';
+import type { JSX } from 'react';
 
 interface UserCardProps {
   user: User;

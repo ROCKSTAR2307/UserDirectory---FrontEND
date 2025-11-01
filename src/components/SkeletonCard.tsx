@@ -1,4 +1,5 @@
 ﻿import './SkeletonCard.css';
+import type { JSX } from 'react';
 
 function SkeletonCard(): JSX.Element {
   return (

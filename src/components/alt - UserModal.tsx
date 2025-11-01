@@ -1,4 +1,5 @@
 ﻿import type { MouseEvent } from 'react';
+import type { JSX } from 'react';
 import type { User } from '../types';
 
 interface Coordinates {

@@ -1,4 +1,5 @@
 ﻿import type { RecentUser } from '../types';
+import type { JSX } from 'react';
 
 interface RecentlyViewedProps {
   recentUsers: RecentUser[];

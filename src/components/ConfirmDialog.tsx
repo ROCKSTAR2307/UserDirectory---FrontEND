@@ -1,5 +1,6 @@
 ﻿import './ConfirmDialog.css';
 import type { ConfirmDialogType } from '../types';
+import type { JSX } from 'react';
 
 interface ConfirmDialogProps {
   isOpen: boolean;

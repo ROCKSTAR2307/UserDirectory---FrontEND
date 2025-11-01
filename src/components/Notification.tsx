@@ -1,6 +1,7 @@
 ﻿import { useNotification } from './NotificationContext';
 import type { NotificationItem as NotificationEntry, NotificationKind } from '../types';
 import './Notification.css';
+import type { JSX } from 'react';
 
 interface NotificationItemProps {
   notification: NotificationEntry;
