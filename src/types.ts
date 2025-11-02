@@ -8,13 +8,14 @@ export interface User {
   email: string;
   phone: string;
   gender: Gender;
-  city?: string;
-  department?: string;
+  city: string;
+  department: string;
   image: string | null;
   status?: string;
   createdAt?: string;
+  createdBy?: string;
   updatedAt?: string;
-  deletedAt?: string | null;
+  updatedBy?: string;
   [key: string]: unknown;
 }
 

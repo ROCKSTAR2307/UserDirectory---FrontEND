@@ -23,8 +23,10 @@ import type {
   User,
   ImportPreview
 } from './types';
+
 import './App.css';
 import { useAppDispatch, useAppSelector } from './store/hooks';
+
 import {
   addUserToFront,
   clearSelectedUsers,
@@ -47,11 +49,10 @@ import {
   toggleUserSelection as toggleUserSelectionAction,
   updateUser
 } from './store/usersSlice';
-import { formatApiErrorMessage, parseApiError } from './utils/api';
 
 const USERS_PER_PAGE = 30;
 
-const defaultNewUser: NewUserForm = {
+const defaultNewUser:NewUserForm  = {
   firstName: '',
   lastName: '',
   email: '',
@@ -72,13 +73,13 @@ const defaultConfirmDialog: ConfirmDialogState = {
 };
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+const phoneRegex = /^\+?[1-9]\d{7,14}$/;
 
 const authHeaders: AuthHeadersFn = () => {
   const token = sessionStorage.getItem('token');
   const headers: Record<string, string> = {};
   if (token) {
-    headers.Authorization = `Bearer ${token}`;
+    headers.Authorization = `Bearer ${token}`; //KEY VALUE for header
   }
   return headers;
 };
@@ -113,7 +114,7 @@ function normalizeUser(raw: Record<string, unknown>): User {
 }
 
 function App(): JSX.Element {
-  const { showNotification } = useNotification();
+  const { showNotification } = useNotification(); // NotificationContext hook, always on top
   const deptSelectRef = useRef<HTMLSelectElement | null>(null);
   const dispatch = useAppDispatch();
   const {
@@ -232,8 +233,7 @@ function App(): JSX.Element {
       });
 
       if (!response.ok) {
-        const apiError = await parseApiError(response);
-        throw new Error(formatApiErrorMessage('Failed to fetch users', apiError));
+        throw new Error(`Fetch failed: ${response.status}`);
       }
 
       const data = (await response.json()) as UsersResponse;
@@ -242,14 +242,9 @@ function App(): JSX.Element {
       dispatch(setUsers(normalizedUsers));
       dispatch(setTotalUsers(data.total ?? 0));
     } catch (error) {
-      if (error instanceof Error && error.message === 'Rate limit exceeded') {
-        return;
+      if ((error as Error).message !== 'Rate limit exceeded') {
+        showNotification('Failed to fetch users', 'error');
       }
-      const message =
-        error instanceof Error && error.message
-          ? error.message
-          : 'Failed to fetch users: Unknown error';
-      showNotification(message, 'error');
     } finally {
       dispatch(setIsLoading(false));
     }
@@ -306,8 +301,7 @@ function App(): JSX.Element {
       }
 
       if (!res.ok) {
-        const apiError = await parseApiError(res);
-        throw new Error(formatApiErrorMessage('Failed to load departments', apiError));
+        throw new Error(`Failed to load departments: ${res.status}`);
       }
 
       const list = (await res.json()) as unknown;
@@ -316,11 +310,6 @@ function App(): JSX.Element {
       }
     } catch (error) {
       console.error('fetchDepartments error:', error);
-      const message =
-        error instanceof Error && error.message
-          ? error.message
-          : 'Failed to load departments: Unknown error';
-      showNotification(message, 'error');
     }
   }, [dispatch, isLoggedIn, showNotification]);
   useEffect(() => {
@@ -438,8 +427,8 @@ function App(): JSX.Element {
         });
 
         if (!res.ok) {
-          const apiError = await parseApiError(res);
-          throw new Error(formatApiErrorMessage('Failed to delete user', apiError));
+          const msg = await res.text();
+          throw new Error(`Delete failed: ${res.status} ${msg}`);
         }
 
         dispatch(removeUser(id));
@@ -456,14 +445,10 @@ function App(): JSX.Element {
         }
       } catch (error) {
         console.error('Error deleting user:', error);
-        const message =
-          error instanceof Error && error.message
-            ? error.message
-            : 'Failed to delete user: Unknown error';
-        showNotification(message, 'error');
+        showNotification(`Failed to delete user: ${(error as Error).message}`, 'error');
       }
     },
-    [authHeaders, closeModal, dispatch, getRecentViewedKey, requestConfirmation, selectedUser, showNotification]
+    [closeModal, dispatch, getRecentViewedKey, requestConfirmation, selectedUser, showNotification]
   );
 
   const handleUserUpdated = useCallback(
@@ -551,8 +536,9 @@ function App(): JSX.Element {
         });
 
         if (!res.ok) {
-          const apiError = await parseApiError(res);
-          throw new Error(formatApiErrorMessage('Failed to create user', apiError));
+          const errorData = await res.json();
+          const errorMessage = errorData.detail || 'Unknown error';
+          throw new Error(errorMessage);
         }
 
         const created = (await res.json()) as Record<string, unknown>;
@@ -570,11 +556,7 @@ function App(): JSX.Element {
         }
       } catch (error) {
         console.error('Error creating user:', error);
-        const message =
-          error instanceof Error && error.message
-            ? error.message
-            : 'Failed to create user: Unknown error';
-        showNotification(message, 'error');
+        showNotification(`Failed to create user: ${(error as Error).message}`, 'error');
       }
     },
     [departments, dispatch, fetchDepartments, newUser, showNotification]
@@ -677,22 +659,17 @@ function App(): JSX.Element {
           setImportPreview(previewData);
           setPendingImportFile(file);
         } else {
-          const apiError = await parseApiError(response);
-          const message = formatApiErrorMessage('Failed to read file', apiError);
-          showNotification(message, 'error');
+          const error = await response.json();
+          showNotification(`Failed to read file: ${error.detail ?? 'Unknown error'}`, 'error');
         }
       } catch (error) {
         console.error('Import preview error:', error);
-        const message =
-          error instanceof Error && error.message
-            ? error.message
-            : 'Failed to read file. Please try again.';
-        showNotification(message, 'error');
+        showNotification('Failed to read file. Please try again.', 'error');
       }
     };
 
     input.click();
-  }, [authHeaders, showNotification]);
+  }, [showNotification]);
 
   const handleConfirmImport = useCallback(async () => {
     if (!pendingImportFile) return;
@@ -721,16 +698,19 @@ function App(): JSX.Element {
         await fetchUsers();
         await fetchDepartments();
       } else {
-        const apiError = await parseApiError(response);
-        throw new Error(formatApiErrorMessage('Import failed', apiError));
+        const errorText = await response.text();
+        try {
+          const errorJson = JSON.parse(errorText) as { detail?: string };
+          showNotification(`Import failed: ${errorJson.detail ?? 'Unknown error'}`, 'error');
+        } catch {
+          showNotification(`Import failed: ${errorText}`, 'error');
+        }
       }
     } catch (error) {
       console.error('Import error:', error);
-      const message =
-        error instanceof Error && error.message ? error.message : 'Import failed. Please try again.';
-      showNotification(message, 'error');
+      showNotification('Import failed. Please try again.', 'error');
     }
-  }, [authHeaders, fetchDepartments, fetchUsers, pendingImportFile, showNotification]);
+  }, [fetchDepartments, fetchUsers, pendingImportFile, showNotification]);
 
   const handleRejectImport = useCallback(() => {
     setImportPreview(null);
@@ -769,18 +749,13 @@ function App(): JSX.Element {
         document.body.removeChild(anchor);
         showNotification('Users exported successfully!', 'success');
       } else {
-        const apiError = await parseApiError(response);
-        throw new Error(formatApiErrorMessage('Export failed', apiError));
+        showNotification('Export failed. Please try again.', 'error');
       }
     } catch (error) {
       console.error('Export error:', error);
-      const message =
-        error instanceof Error && error.message
-          ? error.message
-          : 'Export failed: Please try again.';
-      showNotification(message, 'error');
+      showNotification('Export failed. Please try again.', 'error');
     }
-  }, [authHeaders, currentPage, departmentFilter, genderFilter, searchQuery, showNotification, sortBy, sortOrder]);
+  }, [currentPage, departmentFilter, genderFilter, searchQuery, showNotification, sortBy, sortOrder]);
 
   const bulkDeleteUsers = useCallback(async () => {
     if (selectedUsers.length === 0) {
@@ -807,8 +782,7 @@ function App(): JSX.Element {
       });
 
       if (!res.ok) {
-        const apiError = await parseApiError(res);
-        throw new Error(formatApiErrorMessage('Failed to bulk delete users', apiError));
+        throw new Error('Bulk delete failed');
       }
 
       showNotification(`${selectedUsers.length} user(s) deleted successfully!`, 'success');
@@ -817,13 +791,9 @@ function App(): JSX.Element {
       await fetchUsers();
     } catch (error) {
       console.error('Bulk delete error:', error);
-      const message =
-        error instanceof Error && error.message
-          ? error.message
-          : 'Failed to bulk delete users: Unknown error';
-      showNotification(message, 'error');
+      showNotification('Failed to bulk delete users', 'error');
     }
-  }, [authHeaders, dispatch, fetchUsers, requestConfirmation, selectedUsers, showNotification]);
+  }, [dispatch, fetchUsers, requestConfirmation, selectedUsers, showNotification]);
 
   const toggleUserSelection = useCallback(
     (userId: string) => {
@@ -1188,10 +1158,3 @@ function App(): JSX.Element {
 }
 
 export default App;
-
-
-
-
-
-
-

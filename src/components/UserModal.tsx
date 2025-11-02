@@ -102,6 +102,10 @@ function UserModal({ user, isOpen, onClose, onDelete, onUpdate }: UserModalProps
         formData.append(field, value);
       }
     });
+    const actorEmail = localStorage.getItem('email');
+    if (actorEmail) {
+      formData.append('updatedBy', actorEmail);
+    }
 
     if (editUser.image && typeof editUser.image !== 'string') {
       formData.append('image', editUser.image);

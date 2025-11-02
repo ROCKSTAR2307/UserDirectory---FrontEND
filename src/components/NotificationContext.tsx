@@ -5,8 +5,8 @@ import type { NotificationItem, NotificationKind } from '../types';
 import type { JSX } from 'react';
 
 interface NotificationContextValue {
-  notifications: NotificationItem[];
-  showNotification: (message: string, type?: NotificationKind, duration?: number) => number;
+  notifications: NotificationItem[]; // They return the notification id, so if user removes it early, it calls remove function.
+  showNotification: (message: string, type?: NotificationKind, duration?: number) => number; 
   removeNotification: (id: number) => void;
   success: (message: string, duration?: number) => number;
   error: (message: string, duration?: number) => number;
