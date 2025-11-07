@@ -119,10 +119,6 @@ userdirectory/
 4.  **Bulk Actions:** Select multiple users and perform actions like deletion.
 5.  **Import Data:** Import user data from a file to populate the directory.
 
-## 📸 Screenshots
-
-(Add screenshots of the application here to showcase its features and UI)
-
 ## 🤝 Contributing
 
 Contributions are welcome! Please follow these steps:
@@ -132,13 +128,6 @@ Contributions are welcome! Please follow these steps:
 3.  Make your changes and commit them with clear, concise messages.
 4.  Submit a pull request.
 
-## 📝 License
-
-This project is licensed under the [MIT License](LICENSE).
-
-## 📬 Contact
-
-If you have any questions or suggestions, feel free to contact me at [your-email@example.com](mailto:your-email@example.com).
 
 ## 💖 Thanks
 
